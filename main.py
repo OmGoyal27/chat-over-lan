@@ -1,8 +1,19 @@
 from flask import Flask, request, jsonify
 import requests
+from ruamel.yaml import YAML
 
 app = Flask(__name__)
 PORT = 8000  # Default port for the application
+
+def get_contacts_from_yaml(file_path: str = "config/known_contacts.yaml") -> dict[str, str]:
+    """
+    Load contacts from a YAML file.
+    """
+    yaml = YAML()
+    with open(file_path, 'r') as file:
+        contacts = yaml.load(file)
+    # The contacts will be in the format {ip: name}
+    return contacts
 
 @app.route("/")
 def home():
@@ -12,9 +23,9 @@ def home():
 def receive_message():
     message = request.form.get("message", "No message was provided.")
     sender_ip = request.remote_addr  # Get the sender's IP address
-
+    sender_ip = get_contacts_from_yaml().get(sender_ip, sender_ip)  # Get the name from contacts or use IP as fallback
     # For now, just return the status and print the message along with sender details
-    print(f"Received message: {message} from IP: {sender_ip}")
+    print(f"Received message: {message} from {sender_ip}")
     return jsonify({"status": "success", "sender_ip": sender_ip})
 
 def send_message(message: str, ip: str) -> str:

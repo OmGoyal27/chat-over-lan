@@ -1,4 +1,4 @@
 .env
 /__pycache__/
 test.py
-known_contacts.yaml
+config/known_contacts.yaml
