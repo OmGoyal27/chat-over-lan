@@ -1,2 +1,4 @@
 flask
 ruamel.yaml
+flask-socketio
+requests

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatLAN</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to ChatLAN</h1>
+        <p>Start chatting with your local network!</p>
+        <!-- Add more content here -->
+    </div>
+    <div class="chat-container">
+        <div id="messages" class="messages"></div>
+        <form id="message-form">
+            <select id="recipient-select">
+                <option value="broadcast">Broadcast</option>
+                <!-- Add more options dynamically via JavaScript if needed -->
+            </select>
+            <input type="text" id="ip-input" placeholder="Enter IP address (optional)" autocomplete="off">
+            <input type="text" id="message-input" placeholder="Type your message..." autocomplete="off">
+            <button type="submit">Send</button>
+        </form>
+    </div>
+    <script>
+        const ws = new WebSocket('ws://' + window.location.host + '/ws');
+        const messagesDiv = document.getElementById('messages');
+        const form = document.getElementById('message-form');
+        const input = document.getElementById('message-input');
+        const recipientSelect = document.getElementById('recipient-select');
+        const ipInput = document.getElementById('ip-input');
+
+        ws.onmessage = (event) => {
+            const message = document.createElement('div');
+            message.textContent = event.data;
+            messagesDiv.appendChild(message);
+        };
+
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            if (input.value) {
+                const messageData = {
+                    recipient: recipientSelect.value,
+                    ip: ipInput.value || null, // Use the entered IP address if provided
+                    message: input.value
+                };
+                ws.send(JSON.stringify(messageData));
+                input.value = '';
+                ipInput.value = ''; // Clear the IP input field after sending
+            }
+        };
+    </script>
+</body>
+</html>

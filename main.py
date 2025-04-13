@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
+from flask_socketio import SocketIO, send
 import requests
 from ruamel.yaml import YAML
 import socket
@@ -6,7 +7,10 @@ import socket
 IP_ADDRESS = socket.gethostbyname(socket.gethostname()).rstrip()  # Get the local IP address
 print(f"Local IP Address: {IP_ADDRESS}")  # Print the local IP address for debugging
 
+SECRET_KEY = 'secret!'  # Secret key for Flask sessions
 app = Flask(__name__)
+app.config['SECRET_KEY'] = SECRET_KEY  # Set the secret key for the Flask app
+socketio = SocketIO(app)
 PORT = 8000  # Default port for the application
 
 def get_contacts_from_yaml(file_path: str = "config/known_contacts.yaml") -> dict[str, str]:
@@ -21,7 +25,7 @@ def get_contacts_from_yaml(file_path: str = "config/known_contacts.yaml") -> dic
 
 @app.route("/")
 def home():
-    return "Welcome to ChatLAN! It is currently under development for the GUI."
+    return render_template("index.html")
 
 @app.route("/message", methods=["POST"])
 def receive_message():
@@ -31,6 +35,32 @@ def receive_message():
     # For now, just return the status and print the message along with sender details
     print(f"Received message: {message} from {sender_ip}")
     return jsonify({"status": "success", "sender_ip": sender_ip})
+
+@socketio.on('connect')
+def handle_connect():
+    print("Client connected")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print("Client disconnected")
+
+@socketio.on('message')
+def handle_message(data):
+    """
+    Handle incoming WebSocket messages.
+    """
+    recipient = data.get('recipient', 'broadcast')
+    ip = data.get('ip', None)
+    message = data.get('message', '')
+
+    if recipient == 'broadcast':
+        print(f"Broadcasting message: {message}")
+        send(f"Broadcast: {message}", broadcast=True)
+    elif ip:
+        print(f"Sending message to {ip}: {message}")
+        send(f"To {ip}: {message}", room=ip)  # You can implement room-based logic if needed
+    else:
+        print(f"Message received without a valid recipient: {message}")
 
 def send_message(message: str, ip: str) -> str:
     """
@@ -59,4 +89,4 @@ def send_message_route():
     return jsonify({"status": "success", "response": response})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=PORT, host='0.0.0.0')
+    socketio.run(app, debug=True, port=PORT, host='0.0.0.0')
